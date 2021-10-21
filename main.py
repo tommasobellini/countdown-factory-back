@@ -1,9 +1,12 @@
-from typing import Optional
+import asyncio
+import logging
+from time import sleep
 
 import uvicorn
 from fastapi import FastAPI, File, Depends
 from pydantic import BaseModel
 from datetime import datetime, time, timedelta
+from fastapi_utils.tasks import repeat_every
 
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
@@ -14,8 +17,6 @@ from database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
-
 
 # Dependency
 def get_db():
@@ -25,6 +26,22 @@ def get_db():
     finally:
         db.close()
 
+
+def delete_old_countdown_task(db):
+    print('delete_old_countdown_task started')
+    now = datetime.now()
+    print('now is: {}'.format(str(now)))
+    countdowns = crud.get_countdown_list(db)
+    for countdown in countdowns:
+        print('countdown start_date {} / end_date {}'.format(countdown.start_date, countdown.end_date))
+        if countdown.start_date < now and countdown.end_date < now:
+            res = crud.delete_countdown(db, countdown.id)
+            if res == 'ok':
+                print("Deleted one countdown")
+    print("**********************************")
+
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,8 +54,17 @@ app.add_middleware(
 
 class CountDownSchema(BaseModel):
     name: str
-    start_date: datetime
+    start_date: datetime = datetime.now()
     end_date: datetime
+
+
+session = Session(engine)
+
+
+@app.on_event("startup")
+@repeat_every(seconds=10)  # 1 hour
+async def remove_expired_tokens_task() -> None:
+    delete_old_countdown_task(session)
 
 
 @app.get("/get_countdown/")
