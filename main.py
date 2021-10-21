@@ -29,18 +29,24 @@ def get_db():
 
 
 def delete_old_countdown_task(db):
-    print('delete_old_countdown_task started')
-    now = datetime.now().astimezone(pytz.timezone('Europe/Rome'))
-    print('now is: {}'.format(str(now)))
-    countdowns = crud.get_countdown_list(db)
-    for countdown in countdowns:
-        print('countdown start_date {} / end_date {}'.format(countdown.start_date, countdown.end_date))
-        if countdown.start_date < now and countdown.end_date < now:
-            res = crud.delete_countdown(db, countdown.id)
-            if res == 'ok':
-                print("Deleted one countdown")
-    print("**********************************")
-
+    try:
+        print('delete_old_countdown_task started')
+        now = datetime.now().astimezone(pytz.timezone('Europe/Rome'))
+        print('now is: {}'.format(str(now)))
+        countdowns = crud.get_countdown_list(db)
+        for countdown in countdowns:
+            print('countdown start_date {} / end_date {}'.format(countdown.start_date.astimezone(), countdown.end_date.astimezone()))
+            print(countdown.start_date.astimezone() < now)
+            print(countdown.end_date.astimezone() < now)
+            if countdown.start_date.astimezone() < now and countdown.end_date.astimezone() < now:
+                print('passing')
+                res = crud.delete_countdown(db, countdown.id)
+                print(res)
+                if res == 'ok':
+                    print("Deleted one countdown")
+        print("**********************************")
+    except Exception as e:
+        print(e.__str__())
 
 app = FastAPI()
 
