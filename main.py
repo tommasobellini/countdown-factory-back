@@ -2,6 +2,7 @@ import asyncio
 import logging
 from time import sleep
 
+import pytz
 import uvicorn
 from fastapi import FastAPI, File, Depends
 from pydantic import BaseModel
@@ -29,7 +30,7 @@ def get_db():
 
 def delete_old_countdown_task(db):
     print('delete_old_countdown_task started')
-    now = datetime.now()
+    now = datetime.now().astimezone(pytz.timezone('Europe/Rome'))
     print('now is: {}'.format(str(now)))
     countdowns = crud.get_countdown_list(db)
     for countdown in countdowns:
