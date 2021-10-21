@@ -1,5 +1,0 @@
-tap "heroku/brew"
-tap "homebrew/bundle"
-tap "homebrew/core"
-tap "stripe/stripe-cli"
-brew "yarn"
