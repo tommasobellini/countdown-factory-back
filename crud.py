@@ -26,3 +26,10 @@ def create_countdown(db: Session, countdown: CountDownSchema):
     db.commit()
     db.refresh(db_countdown)
     return db_countdown
+
+
+def delete_countdown(db: Session, id: int):
+    obj = db.query(models.Countdown).filter(models.Countdown.id == id).first()
+    db.delete(obj)
+    db.commit()
+    return "ok"
