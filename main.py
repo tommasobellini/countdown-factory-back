@@ -69,7 +69,7 @@ session = Session(engine)
 
 
 @app.on_event("startup")
-@repeat_every(seconds=10)  # 1 hour
+@repeat_every(seconds=300)  # 1 hour
 async def remove_expired_tokens_task() -> None:
     delete_old_countdown_task(session)
 
