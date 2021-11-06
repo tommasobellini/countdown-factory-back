@@ -9,3 +9,4 @@ class Countdown(Base):
     name = Column(String, nullable=True)
     start_date = Column(DateTime, index=True)
     end_date = Column(DateTime, index=True)
+    reward = Column(String, nullable=True)

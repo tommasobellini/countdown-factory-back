@@ -1,16 +1,17 @@
-import asyncio
-import logging
-from time import sleep
+import os
 
 import pytz
 import uvicorn
-from fastapi import FastAPI, File, Depends
+from fastapi import FastAPI, File, Depends, UploadFile
+from fastapi.encoders import jsonable_encoder
+from fastapi.params import Form
 from pydantic import BaseModel
 from datetime import datetime, time, timedelta
 from fastapi_utils.tasks import repeat_every
 
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 
 import crud
 import models
@@ -35,7 +36,8 @@ def delete_old_countdown_task(db):
         print('now is: {}'.format(str(now)))
         countdowns = crud.get_countdown_list(db)
         for countdown in countdowns:
-            print('countdown start_date {} / end_date {}'.format(countdown.start_date.astimezone(), countdown.end_date.astimezone()))
+            print('countdown start_date {} / end_date {}'.format(countdown.start_date.astimezone(),
+                                                                 countdown.end_date.astimezone()))
             print(countdown.start_date.astimezone() < now)
             print(countdown.end_date.astimezone() < now)
             if countdown.start_date.astimezone() < now and countdown.end_date.astimezone() < now:
@@ -48,8 +50,9 @@ def delete_old_countdown_task(db):
     except Exception as e:
         print(e.__str__())
 
-app = FastAPI()
 
+app = FastAPI()
+app.mount("/rewards", StaticFiles(directory="rewards"), name="rewards")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -63,6 +66,7 @@ class CountDownSchema(BaseModel):
     name: str
     start_date: datetime = datetime.now()
     end_date: datetime
+    reward: str = None
 
 
 session = Session(engine)
@@ -87,8 +91,29 @@ def get_countdown(id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/create_countdown/")
-def create_countdown(body: CountDownSchema, db: Session = Depends(get_db)):
-    countdown = crud.create_countdown(db, body)
+def create_countdown(name: str = Form(...), start_date: datetime = Form(...), end_date: datetime = Form(...), reward: UploadFile = File(...), db: Session = Depends(get_db)):
+    print(reward.file)
+    try:
+        os.mkdir("rewards")
+        print(os.getcwd())
+    except Exception as e:
+        print(e)
+    short_name = "/rewards/" + reward.filename.replace(" ", "-")
+    file_name = os.getcwd() + short_name
+    with open(file_name, 'wb+') as f:
+        f.write(reward.file.read())
+        f.close()
+    if os.environ.get("PROD"):
+        full_name_url = "https://countdown-factory.herokuapp.com" + short_name
+    else:
+        full_name_url = "http://localhost:8000" + short_name
+    countdown = CountDownSchema(
+        name=name,
+        start_date=start_date,
+        end_date=end_date,
+        reward=full_name_url
+    )
+    countdown = crud.create_countdown(db, countdown)
     return countdown
 
 
