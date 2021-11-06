@@ -118,7 +118,7 @@ def create_countdown(name: str = Form(...), start_date: datetime = Form(...), en
         countdown = crud.create_countdown(db, countdown)
         return countdown
     else:
-        HTTPException(detail="Dates in past are not valid.", status_code=400)
+        raise HTTPException(detail="Dates in past are not valid.", status_code=400)
 
 
 @app.delete("/delete_countdown/")
