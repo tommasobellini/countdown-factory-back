@@ -2,7 +2,7 @@ import os
 
 import pytz
 import uvicorn
-from fastapi import FastAPI, File, Depends, UploadFile
+from fastapi import FastAPI, File, Depends, UploadFile, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.params import Form
 from pydantic import BaseModel
@@ -107,14 +107,18 @@ def create_countdown(name: str = Form(...), start_date: datetime = Form(...), en
         full_name_url = "https://countdown-factory.herokuapp.com" + short_name
     else:
         full_name_url = "http://localhost:8000" + short_name
-    countdown = CountDownSchema(
-        name=name,
-        start_date=start_date,
-        end_date=end_date,
-        reward=full_name_url
-    )
-    countdown = crud.create_countdown(db, countdown)
-    return countdown
+
+    if start_date >= datetime.now() and end_date >= datetime.now():
+        countdown = CountDownSchema(
+            name=name,
+            start_date=start_date,
+            end_date=end_date,
+            reward=full_name_url
+        )
+        countdown = crud.create_countdown(db, countdown)
+        return countdown
+    else:
+        HTTPException(detail="Dates in past are not valid.", status_code=400)
 
 
 @app.delete("/delete_countdown/")
